@@ -347,13 +347,6 @@
       }
     },
     {
-      "input": "Fred murdered Steve. So, Steve is dead.",
-      "target_scores": {
-        "entailment": 1,
-        "no-entailment": 0
-      }
-    },
-    {
       "input": "Al and Bonnie are co-workers. So, they’re related.",
       "target_scores": {
         "entailment": 0,
@@ -432,13 +425,6 @@
     },
     {
       "input": "The tabletop is square. So, the tabletop is rectangular.",
-      "target_scores": {
-        "entailment": 1,
-        "no-entailment": 0
-      }
-    },
-    {
-      "input": "Harry is wearing a suit. So, Harry isn't naked.",
       "target_scores": {
         "entailment": 1,
         "no-entailment": 0

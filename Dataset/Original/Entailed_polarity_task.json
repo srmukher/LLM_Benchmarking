@@ -38,7 +38,7 @@
         "yes": 1.0
       }
     },
-     {
+    {
       "input": "Fact: Ed didn't add that Mary arrived. Q: Did Mary arrive?",
       "target_scores": {
         "no": 0.0,
@@ -235,7 +235,7 @@
       }
     },
     {
-      "input": "Fact: Low pressure drove it to rain Q: Did it rain?",
+      "input": "Fact: Low pressure drove it to rain. Q: Did it rain?",
       "target_scores": {
         "no": 0.0,
         "yes": 1.0
@@ -683,7 +683,7 @@
       }
     },
     {
-      "input": "Fact: It didn't start to rain Q: Did it rain?",
+      "input": "Fact: It didn't start to rain. Q: Did it rain?",
       "target_scores": {
         "yes": 0.0,
         "no": 1.0
@@ -1005,7 +1005,7 @@
       }
     },
     {
-      "input": "Fact: It started to rain Q: Did it rain?",
+      "input": "Fact: It started to rain. Q: Did it rain?",
       "target_scores": {
         "no": 0.0,
         "yes": 1.0
