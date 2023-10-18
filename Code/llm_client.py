@@ -7,12 +7,10 @@ import utility
 
 class LLMClient:
     _ENDPOINT = "{api_base_path}/{model}/completions?api-version={api_version}"
-    _ENDPOINT_ADA = (
-        _ENDPOINT.format(
+    _ENDPOINT_ADA = _ENDPOINT.format(
             api_base_path=utility.llm_base_path,
             model=utility._MODEL_ADA,
             api_version=utility.llm_api_version,
-        ),
     )
 
     _ENDPOINT_BABBAGE = (
@@ -48,6 +46,10 @@ class LLMClient:
     )
 
     def send_request(self, model_name, request):
+        if model_name == utility._MODEL_GPT4:
+            key = utility.api_key_gpt4
+        else:
+            key = utility.api_key
         # populate the headers
         headers = {
             "authority": "{res_grp}.openai.azure.com".format(
@@ -55,7 +57,7 @@ class LLMClient:
             ),
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.9",
-            "api-key": utility.api_key,
+            "api-key": key,
             "content-type": "application/json",
             "origin": "https://oai.azure.com",
             "referer": "https://oai.azure.com/",
@@ -83,5 +85,5 @@ class LLMClient:
         print("sending request")
         print("endpoint = ", endpoint)
         response = requests.post(endpoint, data=body, headers=headers)
-        print("response received= ")
+        print("response received= ", response)
         return response.json()

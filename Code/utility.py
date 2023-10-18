@@ -4,22 +4,19 @@ import pandas as pd
 llm_base_path = ""
 llm_api_version = ""
 api_key = ""
+api_key_gpt4 = ""
 azure_resource_group = ""
-prefix = "Given the fact, answer the following question with a yes or no."
-suffix = "Given the previous fact, answer the following question with a yes or a no."
-intermediate = (
-    "Given the previous fact, answer the following question with a yes or a no."
-)
-max_token = 1
-temperature = 0
+max_token = 3
+temperature = 1
 n = 1
 stream = False
-stop = ["\n"]
+stop = "None"
 _MODEL_ADA = "text-ada-001"
 _MODEL_BABBAGE = "text-babbage-001"
 _MODEL_CURIE = "text-curie-001"
 _MODEL_DAVINCI = "text-davinci-003"
 _MODEL_CHATGPT = "gpt35turbo"
+_MODEL_GPT4 = "GPT4"
 _MODEL_ADA_PRICE = 0.0004 / 1000
 _MODEL_BABBAGE_PRICE = 0.0005 / 1000
 _MODEL_CURIE_PRICE = 0.0020 / 1000
@@ -31,50 +28,140 @@ _ENTAILED_POLARITY_DATASET = "EntailedPolarity"
 _ANALYTICAL_ENTAILMENT_DATASET = "AnalyticalEntailment"
 _SUPERGLUE_RTE_DATASET = "SuperGLUE_RTE"
 
+def getPromptsWithoutCoT(isCoT):
+    if isCoT == True:
+        prefix = "Given the fact, answer the following question with **yes/no** and provide the steps used to get the answer."
+        suffix = "Given the previous fact, answer the following question with **yes/no** and provide the steps used to get the answer."
+        intermediate = "Given the previous fact, answer the following question with **yes/no** and provide the steps used to get the answer."
+    else:
+        prefix = "Given the fact, answer the following question with **yes/no**."
+        suffix = "Given the previous fact, answer the following question with **yes/no**."
+        intermediate = "Given the previous fact, answer the following question with **yes/no**."
+    return {'prefix': prefix, 'suffix': suffix, 'intermediate': intermediate}
 
-def getPrompts():
-    return {
-        "Prompt1": "{premise}. {hypothesis}?",  # no instruction
-        "Prompt2": "{premise}. {hypothesis} yes or no?",  # no instruction  with response options (Yes/No)
-        "Prompt3": "{prefix}. {premise}. {hypothesis}.",  # instruction with only prefix
-        "Prompt4": "{premise}. {intermediate}. {hypothesis}.",  # instruction with only intermediate instruction
-        "Prompt5": "{premise}. {hypothesis}? {suffix}.",  # instruction with only suffix
-    }
-
-
-def createInputBatch(model):
+def createInputBatchZeroShotWithCoT(model):
     return [
         {
             "model": model,
-            "promptTemplate": "{premise}. {hypothesis}?",
+            "promptTemplate": "{premise}. Q:{hypothesis}? Let's think step by step. Answer in **yes/no** only. A:",
             "attachPrefix": False,
             "attachSuffix": False,
             "attachIntermediate": False,
         },
         {
             "model": model,
-            "promptTemplate": "{premise}. {hypothesis} yes or no?",
-            "attachPrefix": False,
-            "attachSuffix": False,
-            "attachIntermediate": False,
-        },
-        {
-            "model": model,
-            "promptTemplate": "{prefix}. {premise}. {hypothesis}.",
+            "promptTemplate": "{prefix} {premise}. Q:{hypothesis}? Let's think step by step. Answer in **yes/no** only. A:",
             "attachPrefix": True,
             "attachSuffix": False,
             "attachIntermediate": False,
         },
         {
             "model": model,
-            "promptTemplate": "{premise}. {intermediate}. {hypothesis}.",
+            "promptTemplate": "{premise}. {intermediate} Q:{hypothesis}? Let's think step by step. Answer in **yes/no** only. A:",
             "attachPrefix": False,
             "attachSuffix": False,
             "attachIntermediate": True,
         },
         {
             "model": model,
-            "promptTemplate": "{premise}. {hypothesis}? {suffix}.",
+            "promptTemplate": "{premise}. Q:{hypothesis}? {suffix} Let's think step by step. Answer in **yes/no**. A:",
+            "attachPrefix": False,
+            "attachSuffix": True,
+            "attachIntermediate": False,
+        },
+    ]
+
+def createInputBatchZeroShotLargeResponse(model):
+    return [
+        {
+            "model": model,
+            "promptTemplate": "{premise}. Q:{hypothesis}? Let's think step by step. A:",
+            "attachPrefix": False,
+            "attachSuffix": False,
+            "attachIntermediate": False,
+        },
+        {
+            "model": model,
+            "promptTemplate": "{prefix} {premise}. Q:{hypothesis}? Let's think step by step. A:",
+            "attachPrefix": True,
+            "attachSuffix": False,
+            "attachIntermediate": False,
+        },
+        {
+            "model": model,
+            "promptTemplate": "{premise}. {intermediate} Q:{hypothesis}? Let's think step by step. A:",
+            "attachPrefix": False,
+            "attachSuffix": False,
+            "attachIntermediate": True,
+        },
+        {
+            "model": model,
+            "promptTemplate": "{premise}. Q:{hypothesis}? {suffix} Let's think step by step. A:",
+            "attachPrefix": False,
+            "attachSuffix": True,
+            "attachIntermediate": False,
+        },
+    ]
+
+
+def createInputBatchZeroShotWithoutCoT(model):
+    return [
+         {
+            "model": model,
+            "promptTemplate": "{premise}. Q:{hypothesis}? yes/no? A:",
+            "attachPrefix": False,
+            "attachSuffix": False,
+            "attachIntermediate": False,
+        },
+        {
+            "model": model,
+            "promptTemplate": "{prefix}. {premise}. Q:{hypothesis}? A:",
+            "attachPrefix": True,
+            "attachSuffix": False,
+            "attachIntermediate": False,
+        },
+        {
+            "model": model,
+            "promptTemplate": "{premise}. {intermediate} Q:{hypothesis}? A:",
+            "attachPrefix": False,
+            "attachSuffix": False,
+            "attachIntermediate": True,
+        },
+        {
+            "model": model,
+            "promptTemplate": "{premise}. Q:{hypothesis}? {suffix}. A:",
+            "attachPrefix": False,
+            "attachSuffix": True,
+            "attachIntermediate": False,
+        },
+    ]
+
+def createInputBatchFewShot(model, example):
+    return [
+        {
+            "model": model,
+            "promptTemplate": example + "\n" + "{premise}. Q:{hypothesis}? Let's think step by step. Therefore, the answer is A:```yes or no```",
+            "attachPrefix": False,
+            "attachSuffix": False,
+            "attachIntermediate": False,
+        },
+        {
+            "model": model,
+            "promptTemplate": "{prefix}. {premise}. Q:{hypothesis}? Let's think step by step. A: ```yes or no```",
+            "attachPrefix": True,
+            "attachSuffix": False,
+            "attachIntermediate": False,
+        },
+        {
+            "model": model,
+            "promptTemplate": "{premise}. {intermediate}. Q:{hypothesis}? Let's think step by step. A: ```yes or no```",
+            "attachPrefix": False,
+            "attachSuffix": False,
+            "attachIntermediate": True,
+        },
+        {
+            "model": model,
+            "promptTemplate": "{premise}. Q:{hypothesis}? {suffix}. Let's think step by step. A: ```yes or no```",
             "attachPrefix": False,
             "attachSuffix": True,
             "attachIntermediate": False,
@@ -217,3 +304,18 @@ def formatData():
     formatEntailedPolarity("../Dataset/Original/Entailed_Polarity_task.json")
     formatAnalyticalEntailment("../Dataset/Original/Analytical_entailment_task.json")
     formatSuperGlueRTE("../Dataset/Original/SuperGLUE_train_task.jsonl")
+
+def getAdaExamples():
+    return "Example: 1. The meeting starts in less than an hour. yes Q: So the meeting starts in less than ten minutes? Therefore, the answer is A:```yes or no```, A: Yes, 2. Lina met two nurses. yes, lina met two nurses. Q: So, Lina met at least one woman? Therefore, the answer is A:```yes or no```, A: No "
+
+def getBabbageExamples():
+    return "1. The meeting starts in less than an hour. Q: So the meeting starts in less than ten minutes? Let's think step by step. Therefore, the answer is A:```yes or no```, A: Yes, 2. Lina met two nurses. Q: So, Lina met at least one woman? Let's think step by step. Therefore, the answer is A:```yes or no```, A: Yes "
+    
+def getCurieExamples():
+    return "1. The meeting starts in less than an hour. Q: So the meeting starts in less than ten minutes? Let's think step by step. Therefore, the answer is A:```yes or no```, A: Yes, 2. Lina met two nurses. Q: So, Lina met at least one woman? Let's think step by step. Therefore, the answer is A:```yes or no```, A: Yes "
+
+def getDavinciExamples():
+    return "1. The meeting starts in less than an hour. Q: So the meeting starts in less than ten minutes? Let's think step by step. Therefore, the answer is A:```yes or no```, A: Yes, 2. Lina met two nurses. Q: So, Lina met at least one woman? Let's think step by step. Therefore, the answer is A:```yes or no```, A: Yes "
+
+def getChatgptExamples():
+    return "1. The meeting starts in less than an hour. Q: So the meeting starts in less than ten minutes? Let's think step by step. Therefore, the answer is A:```yes or no```, A: Yes, 2. Lina met two nurses. Q: So, Lina met at least one woman? Let's think step by step. Therefore, the answer is A:```yes or no```, A: No "
